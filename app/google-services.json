@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "752160257348",
+    "project_id": "pdm-firebase-e88ea",
+    "storage_bucket": "pdm-firebase-e88ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:752160257348:android:efbf5d5757dad6a0efd311",
+        "android_client_info": {
+          "package_name": "com.example.todolistfirebase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD12rww-MjadnvNpTnXb4UeG7ZbldKxGoc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
