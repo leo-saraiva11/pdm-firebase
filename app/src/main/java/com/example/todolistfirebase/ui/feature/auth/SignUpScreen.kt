@@ -1,6 +1,5 @@
 package com.example.todolistfirebase.ui.feature.auth
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,12 +22,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolistfirebase.data.AppContainer
 import com.example.todolistfirebase.domain.Result
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 
 @Composable
 fun SignUpScreen(
@@ -39,11 +40,11 @@ fun SignUpScreen(
         AuthViewModel(AppContainer.authRepository)
     }
     val authState by viewModel.authState.collectAsState()
-    val context = LocalContext.current
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(authState) {
         when (val result = authState) {
@@ -52,7 +53,11 @@ fun SignUpScreen(
                 onSignUpSuccess()
             }
             is Result.Error -> {
-                Toast.makeText(context, "Cadastro falhou: ${result.exception.message}", Toast.LENGTH_LONG).show()
+                errorMessage = when (result.exception) {
+                    is FirebaseAuthWeakPasswordException -> "A senha deve ter no mínimo 6 caracteres."
+                    is FirebaseAuthUserCollisionException -> "Este e-mail já está em uso."
+                    else -> "Cadastro falhou: ${result.exception.message}"
+                }
                 viewModel.resetState()
             }
             else -> Unit
@@ -72,39 +77,53 @@ fun SignUpScreen(
 
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { 
+                email = it
+                errorMessage = null
+            },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = errorMessage != null
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { 
+                password = it
+                errorMessage = null
+            },
             label = { Text("Senha") },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = errorMessage != null
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            onValueChange = { 
+                confirmPassword = it
+                errorMessage = null 
+            },
             label = { Text("Confirmar Senha") },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = errorMessage != null
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
-                if (password == confirmPassword) {
-                    viewModel.signUp(email, password)
+                if (email.isBlank() || password.isBlank()) {
+                    errorMessage = "Preencha todos os campos."
+                } else if (password != confirmPassword) {
+                    errorMessage = "As senhas não conferem."
                 } else {
-                    Toast.makeText(context, "Senhas não conferem", Toast.LENGTH_SHORT).show()
+                    viewModel.signUp(email, password)
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -124,5 +143,15 @@ fun SignUpScreen(
             modifier = Modifier.clickable { onNavigateToLogin() },
             color = MaterialTheme.colorScheme.primary
         )
+
+        errorMessage?.let {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }

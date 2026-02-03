@@ -1,6 +1,5 @@
 package com.example.todolistfirebase.ui.feature.auth
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,12 +22,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolistfirebase.data.AppContainer
 import com.example.todolistfirebase.domain.Result
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 
 @Composable
 fun LoginScreen(
@@ -39,10 +40,10 @@ fun LoginScreen(
         AuthViewModel(AppContainer.authRepository)
     }
     val authState by viewModel.authState.collectAsState()
-    val context = LocalContext.current
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(authState) {
         when (val result = authState) {
@@ -51,7 +52,11 @@ fun LoginScreen(
                 onLoginSuccess()
             }
             is Result.Error -> {
-                Toast.makeText(context, "Login falhou: ${result.exception.message}", Toast.LENGTH_LONG).show()
+                errorMessage = when (result.exception) {
+                    is FirebaseAuthInvalidUserException -> "Usuário não encontrado."
+                    is FirebaseAuthInvalidCredentialsException -> "E-mail ou senha inválidos."
+                    else -> "Erro desconhecido: ${result.exception.message}"
+                }
                 viewModel.resetState()
             }
             else -> Unit
@@ -66,30 +71,44 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(text = "Login", style = MaterialTheme.typography.headlineMedium)
-        
+
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it
+                errorMessage = null
+            },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = errorMessage != null
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                errorMessage = null
+            },
             label = { Text("Senha") },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = errorMessage != null
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { viewModel.login(email, password) },
+            onClick = {
+                if (email.isBlank() || password.isBlank()) {
+                    errorMessage = "Preencha todos os campos."
+                } else {
+                    viewModel.login(email, password)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             enabled = authState !is Result.Loading
         ) {
@@ -107,5 +126,15 @@ fun LoginScreen(
             modifier = Modifier.clickable { onNavigateToSignUp() },
             color = MaterialTheme.colorScheme.primary
         )
+
+        errorMessage?.let {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
