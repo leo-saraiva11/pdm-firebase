@@ -1,0 +1,24 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Google Services (Safe to ignore for public repos, but needed to run)
+# Como é trabalho escolar, decida se quer commitar ou não. 
+# Por segurança padrão, ignoramos. Descomente se quiser subir.
+# google-services.json
+
+# Android Studio
+.idea/
+app/build/

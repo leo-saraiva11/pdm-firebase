@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Regra: Usuários só podem ler e escrever seus próprios documentos
+    // Isso assume que cada documento tem um campo 'userId' que corresponde ao UID do usuário logado.
+    
+    match /todos/{todoId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+  }
+}
