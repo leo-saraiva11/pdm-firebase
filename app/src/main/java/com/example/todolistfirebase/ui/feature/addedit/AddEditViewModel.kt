@@ -9,9 +9,8 @@ import com.example.todolistfirebase.data.AuthRepository
 import com.example.todolistfirebase.data.TodoRepository
 import com.example.todolistfirebase.domain.Result
 import com.example.todolistfirebase.domain.Todo
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 sealed class AddEditUiEvent {
@@ -42,8 +41,19 @@ class AddEditViewModel(
     var description by mutableStateOf("")
         private set
 
-    private val _uiEvent = Channel<AddEditUiEvent>()
-    val uiEvent = _uiEvent.receiveAsFlow()
+    /** Gemini - início
+     * Prompt: Add isSaving and shouldNavigateBack states for reliable navigation
+     */
+    var isSaving by mutableStateOf(false)
+        private set
+    
+    // Using observable state for navigation instead of Channel
+    var shouldNavigateBack by mutableStateOf(false)
+        private set
+    
+    var snackbarMessage by mutableStateOf<String?>(null)
+        private set
+    /** Gemini - final */
 
     init {
         if (todoId != null) {
@@ -56,7 +66,7 @@ class AddEditViewModel(
                         }
                     }
                     is Result.Error -> {
-                        _uiEvent.send(AddEditUiEvent.ShowSnackbar("Error loading todo"))
+                        snackbarMessage = "Error loading todo"
                     }
                     Result.Loading -> Unit
                 }
@@ -64,9 +74,6 @@ class AddEditViewModel(
         }
     }
 
-    /** Gemini - início
-     * Prompt: Add KDoc and safely handle null user in onSaveClick
-     */
     fun onTitleChange(newTitle: String) {
         title = newTitle
     }
@@ -74,26 +81,36 @@ class AddEditViewModel(
     fun onDescriptionChange(newDescription: String) {
         description = newDescription
     }
+    
+    fun onSnackbarShown() {
+        snackbarMessage = null
+    }
 
+    /** Gemini - início
+     * Prompt: Fix onSaveClick to use state-based navigation
+     */
     fun onSaveClick() {
+        // Prevent double-click
+        if (isSaving) return
+
         if (title.isBlank()) {
-            viewModelScope.launch {
-                _uiEvent.send(AddEditUiEvent.ShowSnackbar("Title cannot be empty"))
-            }
+            snackbarMessage = "Title cannot be empty"
             return
         }
 
+        isSaving = true
+
         viewModelScope.launch {
             try {
-                // Ensure we get the current user safely
                 val userId = authRepository.getUserId()
                 if (userId == null) {
-                    _uiEvent.send(AddEditUiEvent.ShowSnackbar("User not logged in. Cannot save."))
+                    snackbarMessage = "User not logged in. Cannot save."
+                    isSaving = false
                     return@launch
                 }
                 
                 val todo = Todo(
-                    id = todoId ?: "", // ID will be ignored on add
+                    id = todoId ?: "",
                     title = title,
                     description = description.takeIf { it.isNotBlank() },
                     userId = userId
@@ -107,17 +124,21 @@ class AddEditViewModel(
     
                 when (result) {
                     is Result.Success -> {
-                        _uiEvent.send(AddEditUiEvent.NavigateBack)
+                        // Set flag to trigger navigation
+                        shouldNavigateBack = true
                     }
                     is Result.Error -> {
-                        _uiEvent.send(AddEditUiEvent.ShowSnackbar("Error saving todo: ${result.exception.message}"))
+                        snackbarMessage = "Error saving todo: ${result.exception.message}"
+                        isSaving = false
                     }
                     Result.Loading -> Unit
                 }
             } catch (e: Exception) {
-                 _uiEvent.send(AddEditUiEvent.ShowSnackbar("Unexpected error: ${e.message}"))
+                snackbarMessage = "Unexpected error: ${e.message}"
+                isSaving = false
             }
         }
     }
     /** Gemini - final */
 }
+
