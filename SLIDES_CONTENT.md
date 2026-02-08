@@ -3,7 +3,7 @@
 ## Slide 1: Introdução
 *   **Título**: ToDo List App (Firebase + Jetpack Compose)
 *   **Disciplina**: Programação para Dispositivos Móveis (PDM)
-*   **Autores**: [Nome do Integrante 1] e [Nome do Integrante 2]
+*   **Autores**: Leonardo Rodrigues Oliveira Saraiva e André Noro
 *   **Objetivo**: Desenvolvimento de aplicativo Android com Autenticação (Firebase Auth), Persistência em Nuvem (Firestore) e Arquitetura MVVM, migrando da solução local (Room) para Nuvem.
 
 ## Slide 2: Arquitetura e Tecnologias

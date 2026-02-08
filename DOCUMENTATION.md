@@ -39,7 +39,8 @@ A integração com **Firebase Authentication** gerencia o ciclo de vida do usuá
 ## 4. Interface do Usuário (UI/UX)
 Desenvolvida 100% em **Jetpack Compose**.
 *   **Navegação**: Utiliza `Navigation Compose` com `Type-Safe Routes` (Kotlin Serialization) para passar argumentos.
-*   **Feedback**: Snackbars são usadas para notificar erros (ex: falha ao salvar).
+*   **Optimistic UI (UI Otimista)**: Para garantir uma experiência fluida, implementamos um padrão de *Fire-and-Forget* na criação/edição de tarefas. Ao salvar, a interface reage imediatamente (fechando a tela), enquanto a sincronização com o Firestore ocorre em segundo plano. Isso elimina a sensação de latência em conexões lentas.
+*   **Feedback**: Snackbars são usadas para notificar erros (ex: falha ao carregar lista).
 *   **Estilo**: Material Design 3.
 
 ## 5. Melhorias Futuras
