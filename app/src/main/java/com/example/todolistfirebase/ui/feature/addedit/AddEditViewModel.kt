@@ -9,9 +9,11 @@ import com.example.todolistfirebase.data.AuthRepository
 import com.example.todolistfirebase.data.TodoRepository
 import com.example.todolistfirebase.domain.Result
 import com.example.todolistfirebase.domain.Todo
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 sealed class AddEditUiEvent {
     data object NavigateBack : AddEditUiEvent()
@@ -99,46 +101,42 @@ class AddEditViewModel(
         }
 
         isSaving = true
+        
+        // Optimistic UI: Navigate back immediately!
+        shouldNavigateBack = true
 
+        val userId = authRepository.getUserId()
+        if (userId == null) {
+            // Should not happen if logged in, but just in case
+            return
+        }
+
+        // Fire-and-forget save
         viewModelScope.launch {
             try {
-                val userId = authRepository.getUserId()
-                if (userId == null) {
-                    snackbarMessage = "User not logged in. Cannot save."
-                    isSaving = false
-                    return@launch
-                }
-                
-                val todo = Todo(
-                    id = todoId ?: "",
-                    title = title,
-                    description = description.takeIf { it.isNotBlank() },
-                    userId = userId
-                )
-    
-                val result = if (todoId == null) {
-                    todoRepository.addTodo(todo)
-                } else {
-                    todoRepository.updateTodo(todo)
-                }
-    
-                when (result) {
-                    is Result.Success -> {
-                        // Set flag to trigger navigation
-                        shouldNavigateBack = true
+                // Use NonCancellable to ensure save completes even if ViewModel is cleared
+                kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                    val todo = Todo(
+                        id = todoId ?: "",
+                        title = title,
+                        description = description.takeIf { it.isNotBlank() },
+                        userId = userId
+                    )
+        
+                    if (todoId == null) {
+                        todoRepository.addTodo(todo)
+                    } else {
+                        todoRepository.updateTodo(todo)
                     }
-                    is Result.Error -> {
-                        snackbarMessage = "Error saving todo: ${result.exception.message}"
-                        isSaving = false
-                    }
-                    Result.Loading -> Unit
                 }
             } catch (e: Exception) {
-                snackbarMessage = "Unexpected error: ${e.message}"
-                isSaving = false
+                // If save fails, we can't show snackbar because we already left.
+                // In a real app, we might log this or show a notification.
+                e.printStackTrace()
             }
         }
     }
     /** Gemini - final */
 }
+
 
