@@ -40,12 +40,14 @@ fun AddEditScreen(
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
-            when (event) {
-                is AddEditUiEvent.NavigateBack -> onNavigateBack()
-                is AddEditUiEvent.ShowSnackbar -> {
-                    snackbarHostState.showSnackbar(event.message)
+                when (event) {
+                    is AddEditUiEvent.NavigateBack -> {
+                        onNavigateBack()
+                    }
+                    is AddEditUiEvent.ShowSnackbar -> {
+                        snackbarHostState.showSnackbar(event.message)
+                    }
                 }
-            }
         }
     }
 

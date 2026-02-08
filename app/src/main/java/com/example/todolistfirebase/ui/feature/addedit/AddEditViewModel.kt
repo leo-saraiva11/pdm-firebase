@@ -19,6 +19,17 @@ sealed class AddEditUiEvent {
     data class ShowSnackbar(val message: String) : AddEditUiEvent()
 }
 
+/**
+ * ViewModel responsible for adding and editing Todo items.
+ *
+ * This ViewModel handles the business logic for creating new tasks or updating existing ones.
+ * It interacts with [TodoRepository] for data persistence and [AuthRepository] to ensure
+ * the task is associated with the current user.
+ *
+ * @param todoId The ID of the todo to edit, or null if creating a new one.
+ * @param todoRepository Repository for Todo data operations.
+ * @param authRepository Repository for Authentication operations.
+ */
 class AddEditViewModel(
     private val todoId: String?,
     private val todoRepository: TodoRepository,
@@ -53,6 +64,9 @@ class AddEditViewModel(
         }
     }
 
+    /** Gemini - início
+     * Prompt: Add KDoc and safely handle null user in onSaveClick
+     */
     fun onTitleChange(newTitle: String) {
         title = newTitle
     }
@@ -70,30 +84,40 @@ class AddEditViewModel(
         }
 
         viewModelScope.launch {
-            val userId = authRepository.currentUser.first() ?: return@launch
-            
-            val todo = Todo(
-                id = todoId ?: "", // ID will be ignored on add
-                title = title,
-                description = description.takeIf { it.isNotBlank() },
-                userId = userId
-            )
-
-            val result = if (todoId == null) {
-                todoRepository.addTodo(todo)
-            } else {
-                todoRepository.updateTodo(todo)
-            }
-
-            when (result) {
-                is Result.Success -> {
-                    _uiEvent.send(AddEditUiEvent.NavigateBack)
+            try {
+                // Ensure we get the current user safely
+                val userId = authRepository.getUserId()
+                if (userId == null) {
+                    _uiEvent.send(AddEditUiEvent.ShowSnackbar("User not logged in. Cannot save."))
+                    return@launch
                 }
-                is Result.Error -> {
-                    _uiEvent.send(AddEditUiEvent.ShowSnackbar("Error saving todo: ${result.exception.message}"))
+                
+                val todo = Todo(
+                    id = todoId ?: "", // ID will be ignored on add
+                    title = title,
+                    description = description.takeIf { it.isNotBlank() },
+                    userId = userId
+                )
+    
+                val result = if (todoId == null) {
+                    todoRepository.addTodo(todo)
+                } else {
+                    todoRepository.updateTodo(todo)
                 }
-                Result.Loading -> Unit
+    
+                when (result) {
+                    is Result.Success -> {
+                        _uiEvent.send(AddEditUiEvent.NavigateBack)
+                    }
+                    is Result.Error -> {
+                        _uiEvent.send(AddEditUiEvent.ShowSnackbar("Error saving todo: ${result.exception.message}"))
+                    }
+                    Result.Loading -> Unit
+                }
+            } catch (e: Exception) {
+                 _uiEvent.send(AddEditUiEvent.ShowSnackbar("Unexpected error: ${e.message}"))
             }
         }
     }
+    /** Gemini - final */
 }
