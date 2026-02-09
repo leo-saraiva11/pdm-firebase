@@ -19,6 +19,10 @@ class AuthRepositoryImpl(
         awaitClose { auth.removeAuthStateListener(authStateListener) }
     }
 
+    override fun getUserId(): String? {
+        return auth.currentUser?.uid
+    }
+
     override suspend fun login(email: String, password: String): Result<Unit> {
         return try {
             auth.signInWithEmailAndPassword(email, password).await()

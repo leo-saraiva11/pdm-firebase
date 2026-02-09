@@ -1,6 +1,12 @@
 package com.example.todolistfirebase.ui.feature.list
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -23,7 +29,7 @@ import com.example.todolistfirebase.data.AppContainer
 import com.example.todolistfirebase.navigation.AddEditRoute
 import com.example.todolistfirebase.ui.components.TodoItem
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ListScreen(
     onNavigateToAddEdit: (String?) -> Unit,
@@ -71,22 +77,44 @@ fun ListScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            items(todos, key = { it.id }) { todo ->
-                TodoItem(
-                    todo = todo,
-                    onCompletedChange = { isCompleted ->
-                        viewModel.onCompletedChange(todo, isCompleted)
-                    },
-                    onItemClick = {
-                        viewModel.onTodoClick(todo)
-                    },
-                    onDeleteClick = {
-                        viewModel.onDeleteClick(todo.id)
-                    }
+        if (todos.isEmpty()) {
+            // Empty State
+            Box(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Nenhuma tarefa ainda.\nToque no + para adicionar!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+            ) {
+                items(todos, key = { it.id }) { todo ->
+                    TodoItem(
+                        modifier = Modifier.animateItemPlacement(),
+                        todo = todo,
+                        onCompletedChange = { isCompleted ->
+                            viewModel.onCompletedChange(todo, isCompleted)
+                        },
+                        onItemClick = {
+                            viewModel.onTodoClick(todo)
+                        },
+                        onDeleteClick = {
+                            viewModel.onDeleteClick(todo.id)
+                        }
+                    )
+                }
             }
         }
     }

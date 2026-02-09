@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -46,31 +48,37 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(authState) {
-        when (val result = authState) {
-            is Result.Success -> {
-                viewModel.resetState()
-                onLoginSuccess()
+        if (authState is Result.Success) {
+            viewModel.resetState()
+            onLoginSuccess()
+        } else if (authState is Result.Error) {
+             errorMessage = when ((authState as Result.Error).exception) {
+                is FirebaseAuthInvalidUserException -> "Usuário não encontrado."
+                is FirebaseAuthInvalidCredentialsException -> "E-mail ou senha inválidos."
+                else -> "Erro: ${(authState as Result.Error).exception.message}"
             }
-            is Result.Error -> {
-                errorMessage = when (result.exception) {
-                    is FirebaseAuthInvalidUserException -> "Usuário não encontrado."
-                    is FirebaseAuthInvalidCredentialsException -> "E-mail ou senha inválidos."
-                    else -> "Erro desconhecido: ${result.exception.message}"
-                }
-                viewModel.resetState()
-            }
-            else -> Unit
+            viewModel.resetState()
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(24.dp), // Increased padding
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "Login", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = "Bem-vindo de volta!",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Faça login para continuar",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -82,10 +90,11 @@ fun LoginScreen(
             },
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
-            isError = errorMessage != null
+            isError = errorMessage != null,
+            singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = password,
@@ -96,10 +105,22 @@ fun LoginScreen(
             label = { Text("Senha") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            isError = errorMessage != null
+            isError = errorMessage != null,
+            singleLine = true
         )
+        
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = errorMessage ?: "",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = {
@@ -109,11 +130,14 @@ fun LoginScreen(
                     viewModel.login(email, password)
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
             enabled = authState !is Result.Loading
         ) {
             if (authState is Result.Loading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
             } else {
                 Text("Entrar")
             }
@@ -121,19 +145,10 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Não tem uma conta? Cadastre-se",
-            modifier = Modifier.clickable { onNavigateToSignUp() },
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        errorMessage?.let {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+        TextButton(onClick = onNavigateToSignUp) {
+             Text(
+                text = "Não tem uma conta? Cadastre-se",
+                textAlign = TextAlign.Center
             )
         }
     }

@@ -24,7 +24,25 @@ class TodoRepositoryImpl(
                     return@addSnapshotListener
                 }
                 val todos = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject<Todo>()?.copy(id = doc.id)
+                    try {
+                        val id = doc.id
+                        val title = doc.getString("title") ?: ""
+                        val description = doc.getString("description")
+                        // Handle potential naming mismatch for boolean field
+                        val isCompleted = doc.getBoolean("isCompleted") ?: doc.getBoolean("completed") ?: false
+                        val userId = doc.getString("userId") ?: ""
+                        
+                        Todo(
+                            id = id,
+                            title = title,
+                            description = description,
+                            isCompleted = isCompleted,
+                            userId = userId
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
                 } ?: emptyList()
                 trySend(todos)
             }
@@ -33,7 +51,13 @@ class TodoRepositoryImpl(
 
     override suspend fun addTodo(todo: Todo): Result<Unit> {
         return try {
-            todoCollection.add(todo).await()
+            val todoMap = hashMapOf(
+                "title" to todo.title,
+                "description" to todo.description,
+                "isCompleted" to todo.isCompleted,
+                "userId" to todo.userId
+            )
+            todoCollection.add(todoMap).await()
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -42,7 +66,13 @@ class TodoRepositoryImpl(
 
     override suspend fun updateTodo(todo: Todo): Result<Unit> {
         return try {
-            todoCollection.document(todo.id).set(todo).await()
+            val todoMap = hashMapOf(
+                "title" to todo.title,
+                "description" to todo.description,
+                "isCompleted" to todo.isCompleted,
+                "userId" to todo.userId
+            )
+            todoCollection.document(todo.id).set(todoMap).await()
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -61,7 +91,17 @@ class TodoRepositoryImpl(
     override suspend fun getTodoById(todoId: String): Result<Todo?> {
         return try {
             val doc = todoCollection.document(todoId).get().await()
-            Result.Success(doc.toObject<Todo>()?.copy(id = doc.id))
+            if (doc.exists()) {
+                val id = doc.id
+                val title = doc.getString("title") ?: ""
+                val description = doc.getString("description")
+                val isCompleted = doc.getBoolean("isCompleted") ?: doc.getBoolean("completed") ?: false
+                val userId = doc.getString("userId") ?: ""
+                
+                Result.Success(Todo(id, title, description, isCompleted, userId))
+            } else {
+                Result.Success(null)
+            }
         } catch (e: Exception) {
             Result.Error(e)
         }
