@@ -37,5 +37,5 @@ Para rodar este projeto, é necessário configurar o Firebase:
 
 ## Autores
 
-*   [Nome do Integrante 1]
-*   [Nome do Integrante 2]
+*   Leonardo Rodrigues Oliveira Saraiva
+*   André Noro
